@@ -10,7 +10,7 @@ Parameters:
     ConstraintDescription: Malformed input parameter. AppName must only contain upper and lower case letters, numbers, and -.
   CodeBuildImage:
     Type: String
-    Default: "aws/codebuild/eb-python-2.7-amazonlinux-64:2.3.3"
+    Default: "aws/codebuild/eb-python-2.7-amazonlinux-64:2.1.6"
     #Default: "aws/codebuild/nodejs:7.0.0"
     Description: Image used for CodeBuild project.
 
@@ -27,8 +27,10 @@ Resources:
     Description: Creating Amazon S3 bucket for AWS CodePipeline artifacts
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
-    VersioningConfiguration:
-      Status: Enabled
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -105,6 +107,8 @@ Resources:
                       - 'codebuild:StartBuild'
                       - 'codebuild:BatchGetBuilds'
                   Resource: "*"
+
+  # Note:This is quite permissive!
   CloudFormationExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -120,6 +124,7 @@ Resources:
       Path: /ademo/
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AdministratorAccess'
+
   PipelineExecutionRole:
       Type: AWS::IAM::Role
       Properties:
@@ -199,7 +204,7 @@ Resources:
                       RoleArn: !GetAtt CloudFormationExecutionRole.Arn
                       StackName: !Sub '${AppName}-Stack'
                       ChangeSetName: !Sub '${AppName}-ChangeSet'
-                      TemplatePath: BuiltZip::app_output_sam.yaml
+                      TemplatePath: BuiltZip::post-app.yaml
                       Capabilities: CAPABILITY_IAM
                       ParameterOverrides: '{ "Stage": "prod" }'
                     InputArtifacts:
