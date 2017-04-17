@@ -206,7 +206,6 @@ Resources:
                       ChangeSetName: !Sub '${AppName}-ChangeSet'
                       TemplatePath: BuiltZip::post-app.yaml
                       Capabilities: CAPABILITY_IAM
-                      ParameterOverrides: '{ "Stage": "prod" }'
                     InputArtifacts:
                       - Name: BuiltZip
                     RunOrder: 1
