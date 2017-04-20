@@ -1,53 +1,64 @@
 # adverum-serverless-demoapp
+
+This demo app was created in response to the following request;
+
+Using AWS Cloud Transformation create a template that can be used to inflate a stack of your own choice that provides the following
+1. A failsafe web server that can scale on demand, back ended by a database of your own choice, having the database reside  in a separate VPC.
+2. The web page (only needs to be one) should provide the any wording as long as it is fetched from the backed data source.
+3. A suitable monitoring solution should be in play that is triggered if the CPU utilization of the web server goes over 70% utilization. This should then trigger an alert that sends an email to a predefined address.
+
+### Methodology and Approach
+##### Criteria
+The following criteria was derived from the requests
+- Web server is to be scalable, resiliant and highly available.
+- Database is to be secure and isolated from front-end.
+- Notification event if web server utilization exceeds threshold of 70%.
+
+##### Design
+The application is based on S3 for static website hosting and a serverless backend composed of API Gateway, Lambda and DynamoDB.
+- S3 was chosen to host the website as there is no server overhead and for practical purposes provides massive scalability. The service provides 11 9's of durability and 4 9's(99.99) of availability and can be replicated cross-region to provide further redundancy. The S3 website hosting can be further enhanced using CloudFront and WAF/Shield for improved performance and security.
+- DynamoDB is a high performance, scalable service provided by AWS. Though the service is not VPC based, AWS has announced support for private VPC endpoints, thus allowing access from private resources (VPC or on-premise) without the need to traverse a public network. DynamoDB can be secured on multiple planes such as the control plane and/or the data/application plane(e.g. only an authenticated user may access or decrypt their data.)
+- Access to the database is provided through the use of API Gateway and Lambda functions. This demo implements minimal security but this cand be enhanced to provide strong security, encryption and isolation.
+- As S3 is a managed service provided by AWS, there are no servers to monitor and in this context, utilization will never exceed a threshold. Website monitoring and statistics are available for all website and cdn services.
+
+##### Implementation
 This repo contains the full code and templates needed to create a Serverless Demo App.
 
 There are three separate parts to this application: the api, the pipeline which detects, builds, and deploys changes, and the website.
-Lets start by getting that website up and running.
 
-## Step 1
+### Step 1
 
 ### Website
-In the [website directory](website/) there are three files:
+In the [website directory](website/) there are two files:
 
 1. **[index.html](website/index.html):** This is the index file that our S3 bucket will be displaying.
-2. **[app.js](website/app.js):** The heart of our website. We will be making some changes to this in a bit, but for now we can leave it alone.
-3. **[website.yaml](website/website.yaml):** The CloudFormation template used to create the Amazon S3 bucket for the website.
+2. **[website.yaml](website/website.yaml):** The CloudFormation template used to create the Amazon S3 bucket for the website.
 
-To create the website stack.
+Create the website stack using the console or cli.
 
-[<img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png">](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=myteststack&templateURL=https://awscomputeblogimages.s3-us-west-2.amazonaws.com/samfarm-website.yaml)
-
-Once the stack is complete, we will need to keep track of the S3 bucket name and the URL for the website.
-
-Now we have all the seperate parts of our website, but lets get SAM up and running:
+Once the stack is complete, upload website artifacts with the following command.
 
 ```bash
-sh upload_website.sh <s3-bucket-name>
+sh upload_website.sh <profile-name> <s3-bucket-name>
 ```
 
-And visit the url you saved before. You should see something like this:
-
-![](https://tinybits.awsbryan.com/0l1Qd3oMc8.gif)
-
-Ta-da, a working website! SAM the squirrel may be all alone right now, but we'll fix that in a bit.
+And visit the url saved before.
 
 
-## Step 2
+### Step 2
 ### API
-The Serverless API we are building! The [api directory](api/) contains five files.
+The Serverless API. The [api directory](api/) contains three files.
 
-1. **[beta.json](api/beta.json):** The CloudFormation staging file. This will be used by CloudFormation to pass parameters to our CloudFormation template.
-2. **[buildspec.yml](api/buildspec.yml):** This is used by CodeBuild in the build step of our pipeline. We will get to that later.
-3. **[index.js](api/index.js):** The Lambda function code!
-4. **[package.json](api/package.json):** The package.json that defines what packages we need for our Lambda function.
-5. **[saml.yaml](api/saml.yaml):** SAML my YAML! This is the SAM template file that will be used to create our API gateway resource and Lambda function, hook them up together
+1. **[buildspec.yml](api/buildspec.yml):** This is used by CodeBuild in the build step of the pipeline.
+2. **[index.js](api/index.js):** The Lambda function code.
+2. **[app.yaml](api/app.yaml):** This is the SAM template file that will be used to create the API gateway resource, Lambda function and DynamoDB table, and hook them up together
 
-Create a new github repo from the [api directory](api/) and place these files in there. This repo will be used for your automated CI/CD pipeline we build below.
+Note: A new CodeCommit repo will be created in the following step. The files from the [api directory](api/) will be placed there. This repo will be used for the automated CI/CD pipeline built below.
 
-## Step 3
+### Step 3
 
 ### Pipeline
-The pipeline is a full CI/CD serverless pipeline for building and deploying your api. In this example we are using CloudFormation to create the pipeline, all resources, and any permissions needed.
+The pipeline is a full CI/CD serverless pipeline for building and deploying the api, lambda functions and DynamoDB table. This example uses CloudFormation to create the pipeline, all resources, and any permissions needed.
 
 The following resources are created:
 
@@ -58,63 +69,8 @@ The following resources are created:
 
 The CloudFormation templates being used to create these resources can be found in [pipeline directory](pipeline/).
 
-To create the pipeline stack, click the launch stack button below.
+To create the pipeline stack, click the launch the stack using the console or cli.
 
-[<img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png">](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=myteststack&templateURL=https://awscomputeblogimages.s3-us-west-2.amazonaws.com/samfarm-main.yaml)
+Commit and push the files found in the [api directory](api/).
 
-## Step 4
-### Update your website
-If you have looked at the code in the website (or if you haven't, now is your chance!), you may have noticed that the website makes http requests to an api periodically to update the number of SAMs on the screen. Right now it is pointing at nothing, so lets update it to point it to brand spanking new API. In the [app.js](website/app.js), look for the line
-
-```javascript
-var GET_SAM_COUNT_URL = 'INSERT API GATEWAY URL HERE';
-```
-
-and update that to your API Gateway endpoint. It should be in the format:
-
-```
-https://<api-id>.execute-api.us-east-1.amazonaws.com/Prod/sam
-```
-
-Now lets update your S3 static website with this change:
-
-```bash
-sh upload_website.sh <s3-bucket-name>
-```
-
-
-## Step 5
-### Start the party (or how I learned to stop worrying and push a change)
-Now that we have our website, our code repository with our lambda function and our pipeline configured, lets see it in action. We are going to make two changes to our repository, first were going to setup our API for CORS, and second were going to update our Lambda function. Both changes will be made in the repo you created in Step 2.
-
-
-#### CORS
-Go to the beta.json file and update the following line:
-
-```json
-"OriginUrl": "*"
-```
-
-to the url for the S3 static site we created. Something like:
-
-```json
-"OriginUrl": "http://<s3-bucket-name>.s3-website-us-east-1.amazonaws.com"
-```
-
-
-#### Lambda Function
-Go to index.js file the repo you made in Step 2 and update the line:
-
-```javascript
-var samCount = 1;
-```
-
-to
-
-```javascript
-var samCount = 15;
-```
-
-Commit and push the changes.
-
-Go back to the pipeline we generated in Step 3, you will see AWS CodePipeline automatically pick up your change, and start the build and deploy process. Voila! A completely version controlled, serverless, CI/CD solution to give a squirrel a few friends. Technology!
+Go back to the pipeline we generated in Step 3, you will see AWS CodePipeline automatically pick up the changes, and start the build and deploy process.
