@@ -80,43 +80,57 @@ Resources:
          WriteCapacityUnits: 1
   WebSiteBootstrapFunction:
     Type: AWS::Lambda::Function
+    DependsOn: ServerlessRestApiProdStage
     Properties:
       Code:
         S3Bucket: "adverum.io"
-        S3Key: "CloudFormation/Simple/function.zip"
-      Handler: bootstrap_function.lambda_handler"
+        S3Key: "CloudFormation/Simple/custom.zip"
+      Handler: "bootstrap.lambda_handler"
       Runtime: python2.7
       Timeout: 60
       Role: !GetAtt LambdaExecutionRole.Arn
-LambdaExecutionRole:
-  Type: AWS::IAM::Role
-  Properties:
-    AssumeRolePolicyDocument:
-      Version: '2012-10-17'
-      Statement:
-      - Effect: Allow
-        Principal:
-          Service:
-          - lambda.amazonaws.com
-          - s3.amazonaws.com
-        Action:
-        - sts:AssumeRole
-    Path: "/demo/"
-    Policies:
-    - PolicyName: root
-      PolicyDocument:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
         - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+            - s3.amazonaws.com
           Action:
-          - logs:CreateLogGroup
-          - logs:CreateLogStream
-          - logs:PutLogEvents
-          Resource: arn:aws:logs:*:*:*
-        - Effect: Allow
-          Action:
-          - ec2:DescribeImages
-          Resource: "*"
+          - sts:AssumeRole
+      Path: "/demo/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+            - ec2:DescribeImages
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource: "*"
+  WebSiteBootstrap:
+    Type: "Custom::WebSiteBootstrapper"
+    DependsOn: ServerlessRestApiProdStage
+    Properties:
+      ServiceToken: !GetAtt WebSiteBootstrapFunction.Arn
+      Region: !Ref AWS::Region
+      S3Bucket: !Ref S3Bucket
+      ApiId: !Ref ServerlessRestApi
+
 Outputs:
   BucketName:
     Value: !Ref S3Bucket

@@ -74,3 +74,11 @@ To create the pipeline stack, click the launch the stack using the console or cl
 Commit and push the files found in the [api directory](api/).
 
 Go back to the pipeline we generated in Step 3, you will see AWS CodePipeline automatically pick up the changes, and start the build and deploy process.
+
+---
+## An over simplified approach using "One-Button" deployment.
+To create the simple stack.
+
+[<img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png">](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/new?stackName=SimpleDemoStack&templateURL=https://s3-eu-west-1.amazonaws.com/adverum.io/CloudFormation/Simple/simple.yaml)
+
+Once the stack is complete, the "WebsiteURL" will be listed in the cloudformation output.
